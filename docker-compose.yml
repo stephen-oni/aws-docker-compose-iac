@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Container 1: Frontend Web Server & Reverse Proxy
+  frontend:
+    build: ./frontend
+    # 'ports' maps Port 80 on your physical EC2 instance to Port 80 inside the container.
+    # This OPENS the port to the public internet so users can see your website.
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - pulse_network
+
+  # Container 2: Backend API
+  backend:
+    build: ./backend
+    # 'expose' documents the port for Docker and opens it ONLY to the pulse_network.
+    # This keeps the Flask API completely hidden from the public internet.
+    expose:
+      - "5000"
+    environment:
+      - DB_HOST=db
+    depends_on:
+      - db
+    networks:
+      - pulse_network
+
+  # Container 3: MySQL Database
+  db:
+    image: mysql:8.2
+    environment:
+      - MYSQL_ROOT_PASSWORD=dev_password_123
+      - MYSQL_DATABASE=my_website_db
+    volumes:
+      - db_data:/var/lib/mysql
+    networks: # this help the packages to talk with themselves uisng service name instead of ip addresss but using differnet networrk block then you ned to map.
+      - pulse_network
+
+# Define the persistent storage volume for the database
+volumes:
+  db_data:
+
+# Define a custom private network for the containers to communicate securely
+networks:
+  pulse_network:
+    driver: bridge
