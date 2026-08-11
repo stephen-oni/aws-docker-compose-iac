@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE FIT - Member Dashboard</title>
+    <!-- Standard static link handled by Nginx -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <div class="logo">PULSE<span>FIT</span></div>
+        <ul class="nav-links">
+            <!-- Removed href="/logout", JS handles it securely now -->
+            <li><a href="#" id="logoutBtn" class="btn-logout">Sign Out</a></li>
+        </ul>
+    </nav>
+
+    <!-- DASHBOARD CONTENT -->
+    <div class="dashboard-container">
+        
+        <!-- HEADER PROFILE BADGE WITH PROGRESS BAR -->
+        <div class="dashboard-header" style="flex-wrap: wrap; gap: 20px;">
+            <div class="user-profile">
+                <img src="images/avatar.jpg" alt="User Profile Picture">
+                <div>
+                    <!-- The span ID allows JS to inject the username securely -->
+                    <h2 style="font-size: 1.6rem;">Welcome back, <span id="dashboardUsername" style="color: var(--primary);">Athlete</span>!</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Pro Membership • Hypertrophy Phase</p>
+                </div>
+            </div>
+            
+            <!-- New: Current Goal Progress UI -->
+            <div style="flex: 1; min-width: 250px; max-width: 400px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid var(--bg-card-border);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem;">
+                    <span style="color: var(--text-muted);">Weekly Volume Goal</span>
+                    <span style="color: var(--text-main); font-weight: 600;">80%</span>
+                </div>
+                <div style="width: 100%; background: var(--bg-main); border-radius: 10px; height: 8px; overflow: hidden;">
+                    <div style="width: 80%; background: var(--primary); height: 100%; border-radius: 10px; box-shadow: 0 0 10px var(--primary);"></div>
+                </div>
+            </div>
+
+            <div>
+                <a href="#" class="btn-primary" style="padding: 10px 20px; font-size: 0.9rem;">Log New Workout</a>
+            </div>
+        </div>
+
+        <!-- STATS OVERVIEW METRICS -->
+        <div class="stats-grid">
+            <div class="stat-card" style="border-top: 3px solid var(--primary);">
+                <h4>Weekly Workouts</h4>
+                <div class="stat-value">4 <span style="font-size: 1rem; color: var(--text-muted);">/ 5</span></div>
+            </div>
+            <div class="stat-card" style="border-top: 3px solid #ff9500;">
+                <h4>Calories Burned</h4>
+                <div class="stat-value">2,840 <span style="font-size: 0.9rem; color: var(--text-muted);">kcal</span></div>
+            </div>
+            <div class="stat-card" style="border-top: 3px solid #34c759;">
+                <h4>Active Streak</h4>
+                <div class="stat-value">12 <span style="font-size: 0.9rem; color: var(--text-muted);">Days</span></div>
+            </div>
+            <div class="stat-card" style="border-top: 3px solid var(--accent);">
+                <h4>Hydration Target</h4>
+                <div class="stat-value">3.2 <span style="font-size: 0.9rem; color: var(--text-muted);">Liters</span></div>
+            </div>
+        </div>
+
+        <!-- WORKOUT PROGRAM OVERVIEW TABLE -->
+        <div style="background: var(--bg-card); border: 1px solid var(--bg-card-border); padding: 30px; border-radius: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>Assigned Training Phase: Block A</h3>
+                <span style="background: rgba(255, 59, 48, 0.1); color: var(--primary); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">Active</span>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--bg-card-border); color: var(--text-muted);">
+                            <th style="padding: 12px;">Day</th>
+                            <th style="padding: 12px;">Target Focus</th>
+                            <th style="padding: 12px;">Duration</th>
+                            <th style="padding: 12px;">Status</th>
+                            <th style="padding: 12px; text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid var(--bg-card-border); background: rgba(52, 199, 89, 0.05);">
+                            <td style="padding: 16px 12px; font-weight: 600;">Monday</td>
+                            <td style="padding: 16px 12px;">Chest & Triceps Heavy Strength</td>
+                            <td style="padding: 16px 12px;">60 Mins</td>
+                            <td style="padding: 16px 12px; color: #34c759; font-weight: 600;">✓ Completed</td>
+                            <td style="padding: 16px 12px; text-align: right;"><a href="#" style="color: var(--text-muted); text-decoration: none;">View Stats</a></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--bg-card-border); background: rgba(52, 199, 89, 0.05);">
+                            <td style="padding: 16px 12px; font-weight: 600;">Wednesday</td>
+                            <td style="padding: 16px 12px;">Back & Biceps Volume</td>
+                            <td style="padding: 16px 12px;">55 Mins</td>
+                            <td style="padding: 16px 12px; color: #34c759; font-weight: 600;">✓ Completed</td>
+                            <td style="padding: 16px 12px; text-align: right;"><a href="#" style="color: var(--text-muted); text-decoration: none;">View Stats</a></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--bg-card-border);">
+                            <td style="padding: 16px 12px; font-weight: 600;">Friday</td>
+                            <td style="padding: 16px 12px;">Legs & Core Hypertrophy</td>
+                            <td style="padding: 16px 12px;">70 Mins</td>
+                            <td style="padding: 16px 12px; color: var(--primary); font-weight: 600;">Scheduled Today</td>
+                            <td style="padding: 16px 12px; text-align: right;"><a href="#" class="btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">Start</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="site-footer" style="margin-top: 40px;">
+        <p>&copy; 2026 PULSE FIT. All rights reserved.</p>
+    </footer>
+
+    <!-- DECOUPLED ARCHITECTURE JAVASCRIPT -->
+    <script>
+        // 1. Check Authentication on Page Load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Request the backend to verify the user's session
+                const response = await fetch('/api/user');
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'success') {
+                    // User is authenticated, inject their username into the UI
+                    document.getElementById('dashboardUsername').innerText = data.username;
+                } else {
+                    // Not authenticated (no session), kick them back to login
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error("Auth check failed:", error);
+                window.location.href = 'index.html';
+            }
+        });
+
+        // 2. Handle Secure Logout
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault(); // Prevent standard link behavior
+            
+            try {
+                // Tell the backend to destroy the session
+                await fetch('/api/logout', { method: 'POST' });
+                // Redirect to login page
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error("Logout failed:", error);
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>

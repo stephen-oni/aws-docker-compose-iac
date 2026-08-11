@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE FIT - Create Account</title>
+    <!-- Standard static link handled by Nginx -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <a href="index.html" style="text-decoration: none;" class="logo">PULSE<span>FIT</span></a>
+        <ul class="nav-links">
+            <li><a href="index.html">Already a member? Sign In</a></li>
+        </ul>
+    </nav>
+
+    <!-- SIGNUP FORM CONTAINER -->
+    <div class="center-container">
+        <!-- Expanded max-width and added premium styling elements -->
+        <div class="auth-card" style="max-width: 500px;">
+            <h2>Join PULSE FIT</h2>
+            <p style="color: var(--text-muted); text-align: center; margin-bottom: 20px; font-size: 0.95rem;">
+                Create your profile to unlock custom workout routines and analytics.
+            </p>
+            
+            <!-- Added Membership Perks List for a premium look -->
+            <ul style="list-style: none; margin-bottom: 25px; color: var(--text-muted); font-size: 0.9rem; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+                <li style="margin-bottom: 10px;"><span style="color: var(--primary); margin-right: 8px;">✓</span> <strong style="color: var(--text-main);">Personalized Dashboard:</strong> Track your metrics and macros.</li>
+                <li style="margin-bottom: 10px;"><span style="color: var(--primary); margin-right: 8px;">✓</span> <strong style="color: var(--text-main);">Premium Routines:</strong> Access tier-based programs.</li>
+                <li><span style="color: var(--primary); margin-right: 8px;">✓</span> <strong style="color: var(--text-main);">Progress Analytics:</strong> Data-driven performance insights.</li>
+            </ul>
+            
+            <!-- Form ID added, action/method removed for JS handling -->
+            <form id="signupForm">
+                <div class="form-group">
+                    <label for="username">Choose Username</label>
+                    <input type="text" id="username" name="username" placeholder="e.g. alex_runner" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Create Secure Password</label>
+                    <input type="password" id="password" name="password" placeholder="Minimum 8 characters" required>
+                </div>
+
+                <!-- Hidden div for API error/success messages -->
+                <div id="signupMessage" style="font-size: 0.9rem; margin-bottom: 15px; text-align: center; display: none;"></div>
+
+                <button type="submit" class="btn-primary" id="signupBtn">Create Member Account</button>
+            </form>
+
+            <div class="auth-footer">
+                By creating an account, you agree to our <a href="terms.html">Terms of Service</a>.
+                <div style="margin-top: 15px;">
+                    <a href="terms.html">Terms of Service</a> &nbsp;&nbsp;|&nbsp;&nbsp; <a href="about.html">About</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DECOUPLED ARCHITECTURE JAVASCRIPT -->
+    <script>
+        document.getElementById('signupForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Stop standard browser form submission
+            
+            const messageDiv = document.getElementById('signupMessage');
+            const submitBtn = document.getElementById('signupBtn');
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // UI Loading state
+            submitBtn.innerText = 'Creating Account...';
+            submitBtn.disabled = true;
+            messageDiv.style.display = 'none';
+
+            try {
+                // Send JSON payload to Flask via Nginx
+                const response = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'success') {
+                    // Show success styling
+                    messageDiv.style.color = '#34c759'; // Green success color
+                    messageDiv.innerText = 'Account created successfully! Redirecting to login...';
+                    messageDiv.style.display = 'block';
+                    
+                    // Wait 2 seconds so the user can read the success message, then redirect
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                } else {
+                    // Show error styling (e.g., username taken, IP blocked)
+                    messageDiv.style.color = '#ff3b30'; // Red error color
+                    messageDiv.innerText = data.message || 'Registration failed.';
+                    messageDiv.style.display = 'block';
+                    submitBtn.innerText = 'Create Member Account';
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error("Signup Error:", error);
+                messageDiv.style.color = '#ff3b30';
+                messageDiv.innerText = 'Server connection failed. Please try again later.';
+                messageDiv.style.display = 'block';
+                submitBtn.innerText = 'Create Member Account';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

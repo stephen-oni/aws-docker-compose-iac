@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE FIT - Elite Performance</title>
+    <!-- Standard static link handled by Nginx -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <div class="logo">PULSE<span>FIT</span></div>
+        <ul class="nav-links">
+            <li><a href="#programs">Programs</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="signup.html" class="btn-primary" style="padding: 8px 16px;">Get Started</a></li>
+        </ul>
+    </nav>
+
+    <!-- HERO SECTION + LOGIN FORM -->
+    <section class="hero-container">
+        <div class="hero-content">
+            <div class="badge">Next-Gen Training</div>
+            <h1>TRANSFORM YOUR BODY,<br>ELEVATE YOUR MIND.</h1>
+            <p>Access elite workout routines, track nutritional macros, and achieve peak physical performance with personalized data tracking.</p>
+            <div class="hero-stats">
+                <div><span>10k+</span> Active Athletes</div>
+                <div><span>50+</span> Custom Programs</div>
+            </div>
+        </div>
+
+        <!-- AUTHENTICATION LOGIN CARD -->
+        <div class="auth-card">
+            <h2>Member Login</h2>
+            
+            <!-- The form no longer uses action="/login". JS handles the submission. -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required>
+                </div>
+                
+                <!-- This hidden div will display error messages from the API -->
+                <div id="loginMessage" style="color: #ff3b30; font-size: 0.9rem; margin-bottom: 15px; text-align: center; display: none;"></div>
+                
+                <button type="submit" class="btn-primary" id="loginBtn">Sign In</button>
+            </form>
+            
+            <div class="auth-footer">
+                Don't have an account? <a href="signup.html">Register now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURED PROGRAMS -->
+    <section class="features-section" id="programs">
+        <div class="section-title">
+            <h2>BUILD YOUR PERFORMANCE</h2>
+            <p style="color: var(--text-muted);">Customized training pipelines designed for all athlete tiers.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <img src="images/feature-1.jpg" alt="Strength Training">
+                <div class="feature-card-content">
+                    <h3>Heavy Strength Training</h3>
+                    <p>Master progressive overload principles with detailed barbell mechanics and compound weightlifting guides.</p>
+                </div>
+            </div>
+            <div class="feature-card">
+                <img src="images/feature-2.jpg" alt="HIIT & Cardio">
+                <div class="feature-card-content">
+                    <h3>High Intensity Conditioning</h3>
+                    <p>Maximize VO2 capacity and accelerate fat oxidation through structural metabolic conditioning circuits.</p>
+                </div>
+            </div>
+            <div class="feature-card">
+                <img src="images/feature-3.jpg" alt="Nutrition & Meal Prep">
+                <div class="feature-card-content">
+                    <h3>Precision Nutrition</h3>
+                    <p>Tailored macro-nutrient splits and automated caloric tracking algorithms designed for sustainable gains.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+  
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <p>&copy; 2026 PULSE FIT. All rights reserved.</p>
+    </footer>
+
+    <!-- DECOUPLED ARCHITECTURE JAVASCRIPT -->
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            // 1. Prevent the browser from refreshing the page
+            e.preventDefault();
+            
+            const messageDiv = document.getElementById('loginMessage');
+            const submitBtn = document.getElementById('loginBtn');
+            
+            // 2. Grab the inputs
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Show loading state
+            submitBtn.innerText = 'Authenticating...';
+            submitBtn.disabled = true;
+            messageDiv.style.display = 'none';
+
+            try {
+                // 3. Send JSON data to the Nginx reverse proxy, which routes it to Flask
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                // 4. Handle the API response
+                if (response.ok && data.status === 'success') {
+                    // Success: Redirect to the static dashboard page
+                    window.location.href = 'home.html';
+                } else {
+                    // Fail: Show error message from Flask (e.g., "Account locked")
+                    messageDiv.innerText = data.message || 'Invalid credentials.';
+                    messageDiv.style.display = 'block';
+                    submitBtn.innerText = 'Sign In';
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error("Login Error:", error);
+                messageDiv.innerText = 'Server connection failed. Please try again.';
+                messageDiv.style.display = 'block';
+                submitBtn.innerText = 'Sign In';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
