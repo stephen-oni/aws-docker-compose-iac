@@ -1,6 +1,6 @@
 # PULSE FIT - Infrastructure & Deployment Documentation
 
-**Target Domain:** [http://stephenoni.mytunnel.org/](http://stephenoni.mytunnel.org/)
+**Target Domain:** [Domain Removed]
 **Current Environment:** Development (`dev` branch)
 
 ## Overview
@@ -9,6 +9,8 @@ This repository contains the containerized decoupled architecture for the Pulse 
 This setup is strictly for the **Development Environment**. Production infrastructure (spanning multiple VPC-isolated EC2 instances with SSL/TLS encryption) is managed in the `main`/`production` branch.
 
 ## Architecture Topology
+
+*[Insert Architecture Diagram Here]*
 
 The application runs on a custom Docker bridge network (`pulse_network`) to ensure internal DNS resolution and container isolation.
 
@@ -26,26 +28,25 @@ Before deploying this stack on your EC2 instance, ensure the following are insta
   * Port `8080` (Adminer) - Restricted strictly to your personal IP address.
   * Port `22` (SSH) - Restricted strictly to your personal IP address.
 
-## Environment Configuration
+## Deployment Process
 
+### 1. Environment Configuration
 This project requires sensitive credentials to be passed at runtime. **Never commit the `.env` file to version control.** A `.gitignore` file is configured to block it.
 
-1. Create a `.env` file in the root directory (alongside `docker-compose.yml`):
-   ```bash
-   touch .env
+Create a `.env` file in the root directory alongside `docker-compose.yml`:
+```bash
+touch .env
+
 ```
 
-2. Populate the `.env` file with the required database parameters:
+Populate the `.env` file with the required database parameters:
+
 ```text
 DB_PASSWORD=your_secure_dev_password_here
 
 ```
 
-
-
-## Deployment Lifecycle
-
-### 1. Build and Boot the Stack
+### 2. Build and Boot the Stack
 
 To build the Docker images from source and start all containers in detached mode, run:
 
@@ -54,7 +55,7 @@ docker compose up -d --build
 
 ```
 
-### 2. Verify Container Health
+### 3. Verify Container Health
 
 Ensure all four containers are running and healthy:
 
@@ -70,7 +71,7 @@ docker compose logs backend -f
 
 ```
 
-### 3. Teardown
+### 4. Teardown
 
 To stop and remove the containers while preserving database state:
 
