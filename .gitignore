@@ -1,0 +1,20 @@
+# Security (Keep passwords out of version control)
+.env
+
+# Python Cache (Do not upload compiled bytecode)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python Virtual Environments (If you test locally outside Docker)
+venv/
+env/
+.venv/
+
+# IDEs and Editors (Do not push your personal editor settings)
+.vscode/
+.idea/
+
+# OS Generated Files (Prevents macOS/Windows clutter)
+.DS_Store
+Thumbs.db

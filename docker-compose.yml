@@ -35,7 +35,9 @@ services:
       - MYSQL_DATABASE=my_website_db
     volumes:
       - db_data:/var/lib/mysql
-    networks: # this help the packages to talk with themselves uisng service name instead of ip addresss but using differnet networrk block then you ned to map.
+      # Inject the initialization script
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
       - pulse_network
 
 # Define the persistent storage volume for the database
