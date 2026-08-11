@@ -13,8 +13,8 @@ bcrypt = Bcrypt(app)
 db_config = {
     'host': os.getenv('DB_HOST', 'db'), 
     'user': 'root',
-    'password': 'dev_password_123',
-    'database': 'my_website_db'
+    'password': os.getenv('DB_PASSWORD', 'dev_password_123'),
+    'database': os.getenv('DB_NAME', 'my_website_db')
 }
 
 def get_db_connection():
