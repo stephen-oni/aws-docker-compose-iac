@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE FIT - Elevate Your Limits</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <div class="logo">PULSE<span>FIT</span></div>
+        <ul class="nav-links">
+            <li><a href="#programs">Programs</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="/signup" class="btn-primary" style="padding: 8px 16px;">Get Started</a></li>
+        </ul>
+    </nav>
+
+    <!-- HERO SECTION + LOGIN FORM -->
+    <section class="hero-container">
+        <div class="hero-content">
+            <p class="tagline">Push Past Your Limits</p>
+            <h1>TRANSFORM YOUR BODY, ELEVATE YOUR MIND.</h1>
+            <p>Access elite workout routines, track nutritional macros, and achieve peak physical performance with personalized data tracking.</p>
+        </div>
+
+        <!-- AUTHENTICATION LOGIN CARD -->
+        <div class="auth-card">
+            <h2>Member Login</h2>
+            <form action="/login" method="POST">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-primary">Sign In</button>
+            </form>
+            <div class="auth-footer">
+                Don't have an account? <a href="/signup">Register now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURED PROGRAMS -->
+    <section class="features-section" id="programs">
+        <div class="section-title">
+            <h2>BUILD YOUR PERFORMANCE</h2>
+            <p style="color: var(--text-muted);">Customized training pipelines designed for all athlete tiers.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <img src="{{ url_for('static', filename='images/feature-1.jpg') }}" alt="Strength Training">
+                <div class="feature-card-content">
+                    <h3>Heavy Strength Training</h3>
+                    <p>Master progressive overload principles with detailed barbell mechanics and compound weightlifting guides.</p>
+                </div>
+            </div>
+            <div class="feature-card">
+                <img src="{{ url_for('static', filename='images/feature-2.jpg') }}" alt="HIIT & Cardio">
+                <div class="feature-card-content">
+                    <h3>High Intensity Conditioning</h3>
+                    <p>Maximize VO2 capacity and accelerate fat oxidation through structural metabolic conditioning circuits.</p>
+                </div>
+            </div>
+            <div class="feature-card">
+                <img src="{{ url_for('static', filename='images/feature-3.jpg') }}" alt="Nutrition & Meal Prep">
+                <div class="feature-card-content">
+                    <h3>Precision Nutrition</h3>
+                    <p>Tailored macro-nutrient splits and automated caloric tracking algorithms designed for sustainable gains.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+  
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <p>&copy; 2026 PULSE FIT. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>

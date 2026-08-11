@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE FIT - Create Account</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <a href="/" style="text-decoration: none;" class="logo">PULSE<span>FIT</span></a>
+        <ul class="nav-links">
+            <li><a href="/">Already a member? Sign In</a></li>
+        </ul>
+    </nav>
+
+    <!-- SIGNUP FORM CONTAINER -->
+    <div class="center-container">
+        <div class="auth-card" style="max-width: 450px;">
+            <h2>Join PULSE FIT</h2>
+            <p style="color: var(--text-muted); text-align: center; margin-bottom: 25px; font-size: 0.9rem;">
+                Create your profile to unlock custom workout routines and analytics.
+            </p>
+            
+            <form action="/signup" method="POST">
+                <div class="form-group">
+                    <label for="username">Choose Username</label>
+                    <input type="text" id="username" name="username" placeholder="e.g. alex_runner" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Create Secure Password</label>
+                    <input type="password" id="password" name="password" placeholder="Minimum 8 characters" required>
+                </div>
+                <button type="submit" class="btn-primary">Create Member Account</button>
+            </form>
+
+            <div class="auth-footer">
+                By creating an account, you agree to our <a href="/terms">Terms of Service</a>.
+                <div style="margin-top: 15px;">
+                    <a href="/terms">Terms of Service</a> &nbsp;&nbsp;|&nbsp;&nbsp; <a href="/about">About</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
