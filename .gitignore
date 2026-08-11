@@ -18,3 +18,16 @@ env/
 # OS Generated Files (Prevents macOS/Windows clutter)
 .DS_Store
 Thumbs.db
+
+
+# Ignore all Terraform configuration files
+*.tf
+
+# Ignore specific Terraform modules folder
+modules/
+
+# Standard Terraform local cache and state files
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
