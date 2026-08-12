@@ -1,8 +1,0 @@
-# The core web framework for the API
-Flask==3.0.3
-
-# Required to securely hash and verify user passwords
-Flask-Bcrypt==1.0.1
-
-# The official driver to connect Python to the MySQL database container
-mysql-connector-python==9.0.0
