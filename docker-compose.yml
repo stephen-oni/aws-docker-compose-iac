@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Container 1: Frontend Web Server & Reverse Proxy
   frontend:
