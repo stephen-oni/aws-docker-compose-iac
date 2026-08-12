@@ -1,3 +1,4 @@
+#ignore the .env file created if any.
 .env
 
 # Python Cache (Do not upload compiled bytecode)
