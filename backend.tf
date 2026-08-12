@@ -1,9 +1,9 @@
 terraform {
   cloud {
-    organization = "YOUR_ORGANIZATION_NAME"
+    organization = "stephenoni67"
 
     workspaces {
-      name = "pulse-dev-workspace"
+      name = "stephenoni67"
     }
   }
 }
