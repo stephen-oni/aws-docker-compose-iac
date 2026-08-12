@@ -1,7 +1,6 @@
 services:
-  # Container 1: Frontend Web Server & Reverse Proxy
   frontend:
-    build: ./frontend
+    image: ${ECR_REGISTRY}/pulse-frontend:latest
     ports:
       - "80:80"
     depends_on:
@@ -9,9 +8,8 @@ services:
     networks:
       - pulse_network
 
-  # Container 2: Backend API
   backend:
-    build: ./backend
+    image: ${ECR_REGISTRY}/pulse-backend:latest
     expose:
       - "5000"
     environment:
@@ -25,9 +23,9 @@ services:
     networks:
       - pulse_network
 
-  # Container 3: MySQL Database
   db:
     image: mysql:8.2
+    command: --innodb-buffer-pool-size=256M --max-connections=64
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
       - MYSQL_DATABASE=${DB_NAME}
@@ -39,7 +37,6 @@ services:
     networks:
       - pulse_network
 
-  # Container 4: Web Database Management UI (Adminer)
   adminer:
     image: adminer:latest
     restart: always
@@ -50,11 +47,9 @@ services:
     networks:
       - pulse_network
 
-# Persistent storage volume for MySQL
 volumes:
   db_data:
 
-# Private bridge network for container communication
 networks:
   pulse_network:
     driver: bridge
