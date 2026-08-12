@@ -103,6 +103,10 @@ def login():
             new_attempts = user['failed_attempts'] + 1
             cursor.execute("UPDATE users SET failed_attempts = %s WHERE username = %s", (new_attempts, username))
             conn.commit()
+            
+            if new_attempts >= 3:
+                return jsonify({"status": "error", "message": "Account locked due to too many failed login attempts."}), 403
+                
             return jsonify({"status": "error", "message": f"Invalid credentials. Failed attempts: {new_attempts}/3"}), 401
 
     except mysql.connector.Error as err:
