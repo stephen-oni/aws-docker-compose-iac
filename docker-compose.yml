@@ -39,7 +39,18 @@ services:
     networks:
       - pulse_network
 
-# Persistent storage volume for MySQL..
+  # Container 4: Web Database Management UI (Adminer)
+  adminer:
+    image: adminer:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - pulse_network
+
+# Persistent storage volume for MySQL
 volumes:
   db_data:
 
