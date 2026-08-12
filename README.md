@@ -10,7 +10,7 @@ Application stack updates are executed manually on the EC2 host using Docker Com
 
 ---
 
-## Architecture Topology & Code Explanation
+## Architecture Topology 
 
 ```
 [GitHub Push] ──> [GitHub Actions Runner]
@@ -31,6 +31,8 @@ Application stack updates are executed manually on the EC2 host using Docker Com
 
 ```
 
+## Code Explanation
+
 The application runs on a custom Docker bridge network (`pulse_network`) on the host machine for internal DNS resolution and container isolation.
 
 1. **Frontend (Nginx):** Entry point serving static web assets and operating as a reverse proxy. Port 80 web traffic targeting `/api` is proxied internally to the backend container.
@@ -40,7 +42,7 @@ The application runs on a custom Docker bridge network (`pulse_network`) on the 
 
 ---
 
-## Infrastructure as Code (Terraform)
+## using Infrastructure as Code (Terraform)
 
 The infrastructure is modularized inside the repository structure and managed remotely via **Terraform Cloud**:
 
@@ -66,7 +68,7 @@ The infrastructure is modularized inside the repository structure and managed re
 
 ## CI/CD Pipeline (GitHub Actions)
 
-The pipeline is defined in `.github/workflows/cicd.yml` and triggers automatically on pushes to `dev` or `main`.
+The pipeline is defined in `.github/workflows/cicd.yml` and triggers automatically on pushes to `dev`.
 
 ### Workflow Stages:
 
