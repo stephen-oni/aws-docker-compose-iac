@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains the containerized decoupled architecture and Infrastructure as Code (IaC) for the application stack.
+This repository contains the containerized decoupled architecture and Infrastructure as Code (IaC) for the application stack and also we are working on **dev environment only**.
 
 The infrastructure is provisioned automatically using **Terraform** managed via **Terraform Cloud**. Container image compilation is automated via **GitHub Actions**, which builds and pushes production-ready Docker images to **Amazon Elastic Container Registry (ECR)**.
 
@@ -10,7 +10,13 @@ Application stack updates are executed manually on the EC2 host using Docker Com
 
 ---
 
-## Architecture Topology 
+## Infrastructure Architecture
+
+![Infrastructure Architecture Diagram](./architecture.png)
+
+---
+
+## Architecture cicd flow 
 
 ```
 [GitHub Push] ──> [GitHub Actions Runner]
@@ -59,7 +65,7 @@ The infrastructure is modularized inside the repository structure and managed re
 
 ```
 
-### Key Security Features:
+### Key Security
 
 * **IAM Instance Profile:** The EC2 instance uses an attached IAM role (`pulse-ec2-ecr-read-role`) with `AmazonEC2ContainerRegistryReadOnly` permissions for keyless read access to pull images from Amazon ECR.
 * **Zero Credential Exposure:** SSH private keys and remote execution triggers are completely excluded from CI/CD runners.
