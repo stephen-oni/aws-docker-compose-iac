@@ -95,13 +95,3 @@ resource "aws_instance" "web_server" {
     Name = "pulse-dev-server"
   }
 }
-
-# 4. Allocate Elastic IP and associate it with the EC2 Instance
-resource "aws_eip" "dev_eip" {
-  domain   = "vpc"
-  instance = aws_instance.web_server.id
-
-  tags = {
-    Name = "pulse-dev-eip"
-  }
-}

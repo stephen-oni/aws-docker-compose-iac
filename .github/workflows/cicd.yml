@@ -1,4 +1,4 @@
-name: Infrastructure & Deployment Pipeline
+name: CI & Infrastructure Pipeline
 
 on:
   push:
@@ -10,8 +10,6 @@ jobs:
   terraform:
     name: Provision Infrastructure via Terraform Cloud
     runs-on: ubuntu-latest
-    outputs:
-      ec2_host: ${{ steps.tf-output.outputs.public_ip }}
 
     steps:
       - name: Checkout Source Code
@@ -27,12 +25,6 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-
-      - name: Extract Elastic IP Output
-        id: tf-output
-        run: |
-          IP=$(terraform output -raw public_ip)
-          echo "public_ip=$IP" >> $GITHUB_OUTPUT
 
   build-and-push:
     name: Build & Push Images to ECR
@@ -69,48 +61,3 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/pulse-backend:latest ./backend
           docker push $ECR_REGISTRY/pulse-backend:latest
-
-  deploy:
-    name: Deploy Container Stack to EC2
-    needs: [terraform, build-and-push]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Deploy via SSH using Dynamic Elastic IP
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ needs.terraform.outputs.ec2_host }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -e
-
-            # 1. Log in EC2 Docker daemon to Amazon ECR
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ needs.build-and-push.outputs.ecr_registry }}
-
-            # 2. Prepare deployment directory
-            mkdir -p ~/app
-            cd ~/app
-
-            # 3. Create .env file dynamically on target server
-            cat << 'EOF' > .env
-            ECR_REGISTRY=${{ needs.build-and-push.outputs.ecr_registry }}
-            DB_USER=${{ secrets.DB_USER }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_NAME=${{ secrets.DB_NAME }}
-            SECRET_KEY=${{ secrets.SECRET_KEY }}
-            EOF
-
-            # 4. Pull latest ECR images
-            docker pull ${{ needs.build-and-push.outputs.ecr_registry }}/pulse-frontend:latest
-            docker pull ${{ needs.build-and-push.outputs.ecr_registry }}/pulse-backend:latest
-
-            # 5. Restart services with Docker Compose
-            docker compose down --remove-orphans
-            docker compose up -d
-
-            # 6. Clean up dangling/stale images
-            docker image prune -f
