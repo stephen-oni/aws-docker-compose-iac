@@ -30,8 +30,7 @@ resource "aws_subnet" "public" {
   }
 }
 
-
-# 5. Create a Route Table for the Public Subnet
+# 4. Create a Route Table for the Public Subnet
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.main.id
 
@@ -45,7 +44,7 @@ resource "aws_route_table" "public_rt" {
   }
 }
 
-# 6. Associate the Public Route Table with the Public Subnet
+# 5. Associate the Public Route Table with the Public Subnet
 resource "aws_route_table_association" "public_assoc" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public_rt.id

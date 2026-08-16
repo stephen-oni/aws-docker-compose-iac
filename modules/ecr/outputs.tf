@@ -1,9 +1,9 @@
 output "frontend_repository_url" {
   value       = aws_ecr_repository.frontend.repository_url
-  description = "The URL of the frontend ECR repository"
+  description = "URL of the frontend ECR repository"
 }
 
 output "backend_repository_url" {
   value       = aws_ecr_repository.backend.repository_url
-  description = "The URL of the backend ECR repository"
+  description = "URL of the backend ECR repository"
 }
