@@ -110,7 +110,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Execute Deployment via SSM (Keyless)
+      - name: Execute Deployment via SSM
         run: |
           # 1. Compress configuration files and convert to Base64 to safely pass through SSM payload
           tar -czf app-files.tar.gz docker-compose.yml init.sql
@@ -122,6 +122,9 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy Pulse App via Docker Compose" \
             --parameters commands="[
+              \"export PATH=\$PATH:/usr/local/bin:/snap/bin\",
+              \"echo 'Waiting for server startup scripts to finish...'\",
+              \"cloud-init status --wait\",
               \"mkdir -p /home/ubuntu/app\",
               \"cd /home/ubuntu/app\",
               \"echo '${FILE_B64}' | base64 -d > app-files.tar.gz\",
