@@ -135,7 +135,7 @@ docker image prune -f
 
 ---
 
-## Service Endpoints
+## Service Endpoints:
 
 | Service | Internal URI (Docker) | External Access (Browser) |
 | --- | --- | --- |
