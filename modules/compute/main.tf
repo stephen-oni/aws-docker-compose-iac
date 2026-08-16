@@ -85,6 +85,28 @@ resource "aws_instance" "web_server" {
     delete_on_termination = true
   }
 
+  # THIS IS THE NEW PART: Automatically install Docker & AWS CLI on boot
+  user_data = <<-EOF
+    #!/bin/bash
+    # Update package lists
+    apt-get update -y
+
+    # Install AWS CLI via Snap (highly reliable on Ubuntu)
+    snap install aws-cli --classic
+
+    # Install Docker and Docker Compose
+    curl -fsSL https://get.docker.com | sh
+
+    # Ensure Docker starts on boot
+    systemctl enable --now docker
+
+    # Add the default ubuntu user to the docker group
+    usermod -aG docker ubuntu
+  EOF
+
+  # Force Terraform to recreate the instance if we change this script
+  user_data_replace_on_change = true
+
   tags = {
     Name = "pulse-dev-server"
   }
