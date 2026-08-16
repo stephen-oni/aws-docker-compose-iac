@@ -76,7 +76,10 @@ The pipeline is defined in `.github/workflows/cicd.yml` and triggers automatical
 
 To run this automated pipeline, configure the following under **Repository Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions**:
 
-### Secrets (Encrypted values)
+
+## Required GitHub Actions Secrets
+
+To run this automated pipeline, configure all of the following under **Repository Settings -> Secrets and variables -> Actions -> Secrets**:
 
 | Secret Name | Purpose |
 | --- | --- |
@@ -86,17 +89,10 @@ To run this automated pipeline, configure the following under **Repository Setti
 | `EC2_SSH_KEY` | The raw multi-line `.pem` private key used to access the EC2 instance |
 | `DB_PASSWORD` | Secure password for the MySQL database |
 | `SECRET_KEY` | Application backend session/encryption key |
-
-### Variables (Plaintext configuration)
-
-| Variable Name | Purpose |
-| --- | --- |
 | `AWS_REGION` | Target AWS deployment region (e.g., `us-east-1`) |
 | `AWS_ACCOUNT_ID` | Your 12-digit AWS account ID |
 | `DB_USER` | MySQL database username (e.g., `pulseuser`) |
 | `DB_NAME` | MySQL database name (e.g., `pulsedb`) |
-
----
 
 ## Infrastructure as Code (Terraform) Details
 
