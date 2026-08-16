@@ -1,0 +1,172 @@
+name: "CI/CD Pipeline"
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  terraform:
+    name: "Terraform Provisioning"
+    runs-on: ubuntu-latest
+    outputs:
+      instance_id: ${{ steps.apply.outputs.instance_id }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Apply
+        id: apply
+        if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+        run: |
+          terraform apply -auto-approve -input=false
+          
+          # Extract the provisioned Instance ID from root outputs.tf for SSM
+          EC2_INSTANCE_ID=$(terraform output -raw instance_id)
+          echo "instance_id=$EC2_INSTANCE_ID" >> "$GITHUB_OUTPUT"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+
+  build-and-push:
+    name: "Build & Push to ECR"
+    needs: terraform
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag, and Push Frontend Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: pulse-frontend
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Build, Tag, and Push Backend Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: pulse-backend
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  deploy:
+    name: "Deploy the app to EC2 via AWS SSM"
+    needs: [terraform, build-and-push]
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Execute Deployment via SSM
+        run: |
+          # 1. Compress configuration files and convert to Base64 to safely pass through SSM payload
+          tar -czf app-files.tar.gz docker-compose.yml init.sql
+          FILE_B64=$(base64 -w 0 app-files.tar.gz)
+          
+          # 2. Send the execution command to the EC2 Instance via SSM
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ needs.terraform.outputs.instance_id }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy Pulse App via Docker Compose" \
+            --parameters commands="[
+              \"export PATH=\$PATH:/usr/local/bin:/snap/bin\",
+              \"echo 'Waiting for server startup scripts to finish...'\",
+              \"cloud-init status --wait\",
+              \"mkdir -p /home/ubuntu/app\",
+              \"cd /home/ubuntu/app\",
+              \"echo '${FILE_B64}' | base64 -d > app-files.tar.gz\",
+              \"tar -xzf app-files.tar.gz\",
+              \"rm app-files.tar.gz\",
+              \"aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com\",
+              \"ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com DB_USER=${{ secrets.DB_USER }} DB_PASSWORD=${{ secrets.DB_PASSWORD }} DB_NAME=${{ secrets.DB_NAME }} SECRET_KEY=${{ secrets.SECRET_KEY }} docker compose pull\",
+              \"ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com DB_USER=${{ secrets.DB_USER }} DB_PASSWORD=${{ secrets.DB_PASSWORD }} DB_NAME=${{ secrets.DB_NAME }} SECRET_KEY=${{ secrets.SECRET_KEY }} docker compose up -d --remove-orphans\"
+            ]" \
+            --query "Command.CommandId" \
+            --output text)
+            
+          echo "Dispatched SSM Command ID: $COMMAND_ID"
+          
+          # 3. Wait for the command to finish executing on the EC2 server
+          echo "Waiting for deployment to complete on instance ${{ needs.terraform.outputs.instance_id }}..."
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ needs.terraform.outputs.instance_id }}"
+            
+          echo "Deployment successful!"
+
+
+
+
+
+
+# Add this step if you want CI/CD to generate the .env file automatically at runtime:
+# - name: Deploy to EC2 & Write .env
+#   uses: appleboy/ssh-action@master
+#   with:
+#     host: ${{ secrets.EC2_HOST }}
+#     username: ubuntu
+#     key: ${{ secrets.EC2_SSH_KEY }}
+#     script: |
+#       cd /home/ubuntu/app
+#       cat << 'EOF' > .env
+#       ECR_REGISTRY=${{ secrets.ECR_REGISTRY }}
+#       DB_USER=${{ secrets.DB_USER }}
+#       DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+#       DB_NAME=${{ secrets.DB_NAME }}
+#       SECRET_KEY=${{ secrets.SECRET_KEY }}
+#       EOF
+#       docker compose down
+#       docker compose up -d
