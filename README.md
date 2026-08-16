@@ -12,6 +12,8 @@ Application stack updates are executed manually on the EC2 host using Docker Com
 
 ## Infrastructure Architecture
 
+![Infrastructure Architecture Diagram](./architecture.png)
+
 ---
 
 ## Architecture & CI/CD Flow
@@ -158,3 +160,51 @@ docker image prune -f
 | **Backend API** | `backend:5000` | Internal proxy via Nginx (`/api`) |
 | **MySQL Engine** | `db:3306` | Isolated within `pulse_network` |
 | **Adminer GUI** | `adminer:8080` | `http://<ec2-public-ip>:8080` |
+
+---
+
+## Infrastructure Teardown (Destroy)
+
+If you need to completely tear down and delete all provisioned AWS resources, you can trigger a destroy run through the GitHub Actions pipeline without requiring local CLI tools or credential configurations.
+
+### How to Change `apply` to `destroy` in CI/CD:
+
+1. Open `.github/workflows/cicd.yml` in your code editor.
+2. Locate the **Terraform Apply** step:
+```yaml
+- name: Terraform Apply
+  if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+  run: terraform apply -auto-approve -input=false
+  env:
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+
+```
+
+
+3. Update `terraform apply` to `terraform destroy`:
+```yaml
+- name: Terraform Destroy
+  if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+  run: terraform destroy -auto-approve -input=false
+  env:
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+
+```
+
+
+4. Commit and push the modified workflow file to the `dev` branch:
+```bash
+git add .github/workflows/cicd.yml
+git commit -m "chore: trigger infrastructure destroy"
+git push origin dev
+
+```
+
+
+5. GitHub Actions will execute `terraform destroy -auto-approve`, safely terminating all managed resources (VPCs, Subnets, Security Groups, EC2 instances, and ECR repositories) from your AWS account.
+
+> **Note:** Once the teardown finishes, revert the step back to `terraform apply -auto-approve -input=false` before triggering future infrastructure deployments.
