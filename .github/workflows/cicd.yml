@@ -1,4 +1,4 @@
-name: "Pulse CI/CD Pipeline"
+name: "CI/CD Pipeline"
 
 on:
   push:
@@ -12,6 +12,9 @@ jobs:
   terraform:
     name: "Terraform Provisioning"
     runs-on: ubuntu-latest
+
+    outputs:
+      ec2_ip: ${{ steps.apply.outputs.ec2_ip }}
 
     steps:
       - name: Checkout Code
@@ -39,8 +42,12 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Apply
+        id: apply
         if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-        run: terraform apply -auto-approve -input=false
+        run: |
+          terraform apply -auto-approve -input=false
+          EC2_PUBLIC_IP=$(terraform output -raw public_ip)
+          echo "ec2_ip=$EC2_PUBLIC_IP" >> "$GITHUB_OUTPUT"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -84,3 +91,57 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  deploy:
+    name: "Deploy the app to EC2"
+    needs: [terraform, build-and-push]
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Prepare EC2 Directory & Authenticate ECR
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ needs.terraform.outputs.ec2_ip }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mkdir -p /home/ubuntu/app
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      - name: Copy docker-compose and init.sql to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ needs.terraform.outputs.ec2_ip }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml,init.sql"
+          target: "/home/ubuntu/app"
+
+      - name: Pull and Run Containers (Injected Secrets)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ needs.terraform.outputs.ec2_ip }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: ECR_REGISTRY,DB_USER,DB_PASSWORD,DB_NAME,SECRET_KEY
+          script: |
+            cd /home/ubuntu/app
+            
+            # Run docker compose using in-memory environment variables (No .env file created)
+            ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" \
+            DB_USER="${{ secrets.DB_USER }}" \
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            DB_NAME="${{ secrets.DB_NAME }}" \
+            SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            docker compose pull
+
+            ECR_REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" \
+            DB_USER="${{ secrets.DB_USER }}" \
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            DB_NAME="${{ secrets.DB_NAME }}" \
+            SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            docker compose up -d --remove-orphans
