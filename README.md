@@ -84,7 +84,7 @@ The pipeline is defined in `.github/workflows/cicd.yml` and triggers automatical
 
 ---
 
-## Required CI/CD Secrets
+## Required CI/CD Secrets.
 
 Configure the following secrets under **Repository Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions**:
 
