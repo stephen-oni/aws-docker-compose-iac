@@ -13,8 +13,7 @@ output "ec2_public_ip" {
   description = "Public IP of the EC2 instance"
 }
 
-output "private_key_pem" {
-  value       = module.compute.private_key_pem
-  description = "The generated private key for SSH access"
-  sensitive   = true
+output "instance_id" {
+  value       = module.compute.instance_id
+  description = "The ID of the EC2 instance for SSM targeting"
 }
