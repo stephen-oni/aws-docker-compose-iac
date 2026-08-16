@@ -1,24 +1,22 @@
-# 1. Network Module
-module "network" {
-  source = "./modules/network"
+terraform {
+  required_version = ">= 1.0"
 
-  vpc_cidr           = var.vpc_cidr
-  public_subnet_cidr = var.public_subnet_cidr
-  availability_zone  = var.availability_zone
+  cloud {
+    organization = "stephenoni67"
+
+    workspaces {
+      name = "stephenoni67"
+    }
+  }
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
 }
 
-# 2. ECR Module
-module "ecr" {
-  source = "./modules/ecr"
-}
-
-# 3. Compute Module
-module "compute" {
-  source = "./modules/compute"
-
-  vpc_id           = module.network.vpc_id
-  public_subnet_id = module.network.public_subnet_id
-  ami_id           = var.ami_id
-  instance_type    = var.instance_type
-  key_name         = var.key_name
+provider "aws" {
+  region = var.aws_region
 }
