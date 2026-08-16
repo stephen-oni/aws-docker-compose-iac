@@ -1,20 +1,4 @@
-# 1. Dynamic AMI Lookup for Ubuntu 24.04 LTS
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical's official AWS Account ID
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-noble-24.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-# 2. Security Group for EC2
+# 1. Security Group for EC2
 resource "aws_security_group" "ec2_sg" {
   name        = "pulse-ec2-sg"
   description = "Security group for pulse app server"
@@ -60,7 +44,7 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# 3. Automatic SSH Key Pair Generation
+# 2. Automatic SSH Key Pair Generation
 resource "tls_private_key" "auto_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
@@ -71,7 +55,7 @@ resource "aws_key_pair" "generated_key" {
   public_key = tls_private_key.auto_key.public_key_openssh
 }
 
-# 4. IAM Role & Instance Profile for ECR Read-Only Access
+# 3. IAM Role & Instance Profile for ECR Read-Only Access
 resource "aws_iam_role" "ec2_ecr_role" {
   name = "pulse-ec2-ecr-read-role"
 
@@ -99,14 +83,21 @@ resource "aws_iam_instance_profile" "ec2_profile" {
   role = aws_iam_role.ec2_ecr_role.name
 }
 
-# 5. Provision the Single EC2 Instance
+# 4. Provision the Single EC2 Instance
 resource "aws_instance" "web_server" {
-  ami                    = data.aws_ami.ubuntu.id
+  ami                    = "ami-052355af2a014bd2c" # Official Ubuntu 24.04 LTS (amd64) us-east-1
   instance_type          = var.instance_type
+  availability_zone      = "us-east-1a"
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   key_name               = aws_key_pair.generated_key.key_name
+
+  root_block_device {
+    volume_size           = 8
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
 
   tags = {
     Name = "pulse-dev-server"
