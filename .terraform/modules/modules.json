@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"compute","Source":"./modules/compute","Dir":"modules/compute"},{"Key":"ecr","Source":"./modules/ecr","Dir":"modules/ecr"},{"Key":"network","Source":"./modules/network","Dir":"modules/network"}]}

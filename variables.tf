@@ -27,9 +27,3 @@ variable "instance_type" {
   type        = string
   default     = "t3.micro"
 }
-
-variable "key_name" {
-  description = "Name of the SSH key pair"
-  type        = string
-  default     = "pulse-auto-generated-key"
-}

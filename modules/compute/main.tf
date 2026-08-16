@@ -22,16 +22,7 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # SSH access
-  ingress {
-    description = "Allow SSH access"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Outbound rule
+  # Outbound rule (Required for SSM Agent to reach AWS Control Plane)
   egress {
     from_port   = 0
     to_port     = 0
@@ -44,20 +35,9 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# 2. Automatic SSH Key Pair Generation
-resource "tls_private_key" "auto_key" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
-resource "aws_key_pair" "generated_key" {
-  key_name   = var.key_name
-  public_key = tls_private_key.auto_key.public_key_openssh
-}
-
-# 3. IAM Role & Instance Profile for ECR Read-Only Access
-resource "aws_iam_role" "ec2_ecr_role" {
-  name = "pulse-ec2-ecr-read-role"
+# 2. IAM Role & Instance Profile for ECR Read-Only AND SSM Access
+resource "aws_iam_role" "ec2_role" {
+  name = "pulse-ec2-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -73,17 +53,24 @@ resource "aws_iam_role" "ec2_ecr_role" {
   })
 }
 
+# Attach ECR Read-Only Policy
 resource "aws_iam_role_policy_attachment" "ecr_readonly_attach" {
-  role       = aws_iam_role.ec2_ecr_role.name
+  role       = aws_iam_role.ec2_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+# Attach SSM Managed Instance Core Policy (This replaces SSH)
+resource "aws_iam_role_policy_attachment" "ssm_core_attach" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "pulse-ec2-instance-profile"
-  role = aws_iam_role.ec2_ecr_role.name
+  role = aws_iam_role.ec2_role.name
 }
 
-# 4. Provision the Single EC2 Instance
+# 3. Provision the Single EC2 Instance (No Key Pair)
 resource "aws_instance" "web_server" {
   ami                    = "ami-052355af2a014bd2c" # Official Ubuntu 24.04 LTS (amd64) us-east-1
   instance_type          = var.instance_type
@@ -91,7 +78,6 @@ resource "aws_instance" "web_server" {
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
-  key_name               = aws_key_pair.generated_key.key_name
 
   root_block_device {
     volume_size           = 8
