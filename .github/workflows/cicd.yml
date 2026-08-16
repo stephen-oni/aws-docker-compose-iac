@@ -3,7 +3,7 @@ name: CI & Infrastructure Pipeline
 on:
   push:
     branches:
-      - devffffff
+      - dev
 
 jobs:
   terraform:
