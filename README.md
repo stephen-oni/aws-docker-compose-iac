@@ -98,7 +98,7 @@ The Terraform code (`main.tf`, `modules/`) utilizes a highly automated approach 
 * **Pinned Canonical AMI:** Uses official Ubuntu 24.04 LTS pinned to a specific availability zone for consistent builds.
 * **Current-Gen Free-Tier Compute:** Deploys a `t3.micro` instance with an 8 GB GP3 root volume to comply with AWS constraints.
 * **Hardened Security Group:** No inbound SSH (Port 22) access is permitted.
-* **IAM Instance Profile:** Attaches an IAM role with both `AmazonEC2ContainerRegistryReadOnly` and `AmazonSSMManagedInstanceCore` permissions so the server can seamlessly pull private images and receive deployment commands securely from AWS.
+* **IAM Instance Profile:** Attaches an IAM role with both `AmazonEC2ContainerRegistryReadOnly` and `AmazonSSMManagedInstanceCore` permissions so the server can seamlessly pull private images and receive deployment commands securely from AWS..
 
 ---
 
