@@ -1,4 +1,20 @@
-# 1. Create Security Group for EC2
+# 1. Dynamic AMI Lookup for Ubuntu 24.04 LTS
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical's official AWS Account ID
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+# 2. Security Group for EC2
 resource "aws_security_group" "ec2_sg" {
   name        = "pulse-ec2-sg"
   description = "Security group for pulse app server"
@@ -31,7 +47,7 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Outbound rule to download packages, updates, and pull ECR images
+  # Outbound rule
   egress {
     from_port   = 0
     to_port     = 0
@@ -44,7 +60,7 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# 2. IAM Role & Instance Profile for ECR Read-Only Access
+# 3. IAM Role & Instance Profile for ECR Read-Only Access
 resource "aws_iam_role" "ec2_ecr_role" {
   name = "pulse-ec2-ecr-read-role"
 
@@ -72,9 +88,9 @@ resource "aws_iam_instance_profile" "ec2_profile" {
   role = aws_iam_role.ec2_ecr_role.name
 }
 
-# 3. Provision the Single EC2 Instance
+# 4. Provision the Single EC2 Instance
 resource "aws_instance" "web_server" {
-  ami                         = var.ami_id
+  ami                         = data.aws_ami.ubuntu.id # Uses dynamic AMI lookup
   instance_type               = var.instance_type
   subnet_id                   = var.public_subnet_id
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
