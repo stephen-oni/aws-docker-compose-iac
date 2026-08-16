@@ -4,7 +4,7 @@
 
 This repository contains the containerized decoupled architecture and Infrastructure as Code (IaC) for the application stack configured for the **dev environment**.
 
-The infrastructure is provisioned automatically using **Terraform** using **Terraform Cloud** as a remote state backend. Container image compilation is automated via **GitHub Actions**, which builds and pushes production-ready Docker images to **Amazon Elastic Container Registry (ECR)**.
+The infrastructure is provisioned automatically using **Terraform** with **HCP Terraform (Terraform Cloud)** as a remote state backend. Container image compilation and push automation are handled via **GitHub Actions**, which builds and pushes production-ready Docker images to **Amazon Elastic Container Registry (ECR)**.
 
 Application stack updates are executed manually on the EC2 host using Docker Compose.
 
@@ -12,28 +12,26 @@ Application stack updates are executed manually on the EC2 host using Docker Com
 
 ## Infrastructure Architecture
 
-![Infrastructure Architecture Diagram](./architecture.png)
-
 ---
 
 ## Architecture & CI/CD Flow
 
 ```text
-[GitHub Push] ──> [GitHub Actions Runner]
-                           │
-        ┌──────────────────┴──────────────────┐
-        ▼                                     ▼
-[1. Terraform Cloud (State)]        [2. Amazon ECR (Images)]
-  ├── Network (VPC, Subnet, IGW)       ├── pulse-frontend:latest
-  ├── ECR Repositories                 └── pulse-backend:latest
-  └── Compute (EC2 Instance & Key)                │
-                                                  │ (Manual Pull & Deploy)
-                                                  ▼
-                                    [3. Production EC2 Instance]
-                                      ├── Frontend (Nginx:80)
-                                      ├── Backend (Flask:5000)
-                                      ├── Database (MySQL:3306)
-                                      └── Adminer (GUI:8080)
+[GitHub Push (dev)] ──> [GitHub Actions Runner]
+                               │
+        ┌──────────────────────┴──────────────────────┐
+        ▼                                             ▼
+[1. Terraform Cloud (State)]                [2. Amazon ECR (Images)]
+  ├── Network (VPC 192.168.0.0/16, Subnet)       ├── pulse-frontend:latest
+  ├── ECR Repositories                           └── pulse-backend:latest
+  └── Compute (EC2 t3.micro & Key Pair)                       │
+                                                              │ (Manual Pull & Deploy)
+                                                              ▼
+                                                [3. Production EC2 Instance]
+                                                  ├── Frontend (Nginx:80)
+                                                  ├── Backend (Flask:5000)
+                                                  ├── Database (MySQL:3306)
+                                                  └── Adminer (GUI:8080)
 
 ```
 
@@ -52,24 +50,25 @@ The application runs on a custom Docker bridge network (`pulse_network`) on the 
 
 ## Infrastructure as Code (Terraform)
 
-The infrastructure is modularized and configured for remote execution via **Terraform Cloud**:
+The infrastructure is modularized and configured for remote execution via **HCP Terraform**:
 
 ```text
 ├── modules/
-│   ├── compute/    # Security Group, Dynamic AMI, TLS SSH Key, IAM Role & EC2
+│   ├── compute/    # Security Group, Hardcoded Ubuntu AMI, TLS SSH Key, IAM Role & EC2 (t3.micro)
 │   ├── ecr/        # Amazon ECR Repositories for frontend and backend
-│   └── network/    # VPC (192.168.0.0/16), Internet Gateway, Public Subnet, Route Table
+│   └── network/    # VPC (192.168.0.0/16), Internet Gateway, Public Subnet (192.168.1.0/24), Route Table
 ├── main.tf         # Module orchestration
 ├── outputs.tf      # Exports ECR repository URLs, EC2 Public IP, and Private Key
-├── provider.tf     # Terraform Cloud backend configuration & AWS provider setup
-└── variables.tf    # Root input variables (t3.micro, us-east-1a)
+├── provider.tf     # Terraform Cloud backend configuration & AWS/TLS provider setup
+└── variables.tf    # Root input variables (t3.micro, us-east-1, us-east-1a)
 
 ```
 
 ### Key Infrastructure Configuration
 
-* **Dynamic AMI Lookup:** Automatically retrieves the latest official Canonical Ubuntu 24.04 LTS (`ubuntu-noble-24.04-amd64-server-*`) image from Canonical's account (`099720109477`).
-* **Automated SSH Key Pair:** Automatically provisions an RSA 4096-bit SSH key pair (`tls_private_key`) and registers it with AWS EC2 (`pulse-auto-generated-key`).
+* **Pinned Canonical AMI:** Uses official Ubuntu 24.04 LTS (`ami-052355af2a014bd2c` amd64) pinned to `us-east-1a` for consistent builds.
+* **Current-Gen Free-Tier Compute:** Uses `t3.micro` instance types with an explicit 8 GB GP3 root volume block device to comply with AWS account constraints.
+* **Automated SSH Key Pair:** Automatically provisions a 4096-bit RSA SSH key pair (`tls_private_key`) and registers it with AWS EC2 (`pulse-auto-generated-key`).
 * **IAM Instance Profile:** Attaches an IAM role (`pulse-ec2-ecr-read-role`) with `AmazonEC2ContainerRegistryReadOnly` permissions to the EC2 instance for keyless image pulling from Amazon ECR.
 * **Zero Credential Exposure:** AWS credentials and API tokens remain securely stored inside GitHub Repository Secrets.
 
@@ -77,11 +76,11 @@ The infrastructure is modularized and configured for remote execution via **Terr
 
 ## CI/CD Pipeline (GitHub Actions)
 
-The pipeline is defined in `.github/workflows/cicd.yml` and triggers automatically on pushes to `dev`.
+The pipeline is defined in `.github/workflows/cicd.yml` and triggers automatically on pushes and pull requests targeting the `dev` branch.
 
 ### Workflow Stages:
 
-1. **Terraform Provisioning:** Authenticates with Terraform Cloud using `TF_API_TOKEN`, passes AWS environment credentials, and runs `terraform apply -auto-approve`.
+1. **Terraform Provisioning:** Authenticates with Terraform Cloud using `TF_API_TOKEN`, passes AWS environment credentials, validates code, and runs `terraform apply -auto-approve` on direct pushes to `dev`.
 2. **Build & Push to ECR:** Authenticates with AWS via IAM secrets, builds Docker images for `/frontend` and `/backend`, and pushes them with the `latest` tag to Amazon ECR.
 
 ---
@@ -105,10 +104,13 @@ To deploy or update the stack on your EC2 instance:
 
 ### 1. Extract the Generated Private Key (First-time setup)
 
-Fetch the automatically generated SSH private key from Terraform output and save it locally:
+Fetch the automatically generated SSH private key string from Terraform Cloud output or terminal state and save it locally:
 
 ```bash
+# Output raw key file
 terraform output -raw private_key_pem > pulse-key.pem
+
+# Apply strict read-only file permissions
 chmod 400 pulse-key.pem
 
 ```
@@ -153,6 +155,6 @@ docker image prune -f
 | Service | Internal URI (Docker) | External Access (Browser) |
 | --- | --- | --- |
 | **Frontend UI** | `frontend:80` | `http://<ec2-public-ip>/` |
-| **Backend API** | `backend:5000` | Internal proxy via Nginx |
+| **Backend API** | `backend:5000` | Internal proxy via Nginx (`/api`) |
 | **MySQL Engine** | `db:3306` | Isolated within `pulse_network` |
 | **Adminer GUI** | `adminer:8080` | `http://<ec2-public-ip>:8080` |
