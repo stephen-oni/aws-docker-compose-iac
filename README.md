@@ -1,5 +1,4 @@
-# Containerized Three-Tier Architecture - Infrastructure & Deployment Guide
-
+# Containerized Three-Tier Architecture
 ## Overview
 
 This repository contains the containerized decoupled architecture and Infrastructure as Code (IaC) for the application stack configured for the **dev environment**.
@@ -50,7 +49,7 @@ The application runs on a custom Docker bridge network (`pulse_network`) on the 
 
 ---
 
-## Infrastructure as Code (Terraform)
+## Infrastructure as Code using Terraform
 
 The infrastructure is modularized and configured for remote execution via **HCP Terraform**:
 
@@ -59,6 +58,9 @@ The infrastructure is modularized and configured for remote execution via **HCP 
 │   ├── compute/    # Security Group, Hardcoded Ubuntu AMI, TLS SSH Key, IAM Role & EC2 (t3.micro)
 │   ├── ecr/        # Amazon ECR Repositories for frontend and backend
 │   └── network/    # VPC (192.168.0.0/16), Internet Gateway, Public Subnet (192.168.1.0/24), Route Table
+├── .env.example    # Template environment variable file for deployment configuration
+├── docker-compose.yml # Service definitions for Frontend, Backend, Database, and Adminer
+├── init.sql        # Database initialization script
 ├── main.tf         # Module orchestration
 ├── outputs.tf      # Exports ECR repository URLs, EC2 Public IP, and Private Key
 ├── provider.tf     # Terraform Cloud backend configuration & AWS/TLS provider setup
@@ -125,20 +127,41 @@ cd ~/app
 
 ```
 
-### 3. Authenticate Docker with Amazon ECR
+### 3. Configure Environment Variables (`.env`)
+
+Before starting the application, copy `.env.example` to create your active `.env` file and populate it with required values:
+
+```bash
+# Create the .env file from template
+cp .env.example .env
+
+# Edit .env file with your specific configurations
+nano .env
+
+```
+
+Ensure your `.env` contains the required container registry URIs, database credentials, and operational variables:
+
+```env
+ECR_REGISTRY=<your-account-id>.dkr.ecr.<your-aws-region>.amazonaws.com
+MYSQL_ROOT_PASSWORD=your_secure_root_password
+MYSQL_DATABASE=pulse_db
+MYSQL_USER=pulse_user
+MYSQL_PASSWORD=your_secure_db_password
+
+```
+
+### 4. Authenticate Docker with Amazon ECR
 
 ```bash
 aws ecr get-login-password --region <your-aws-region> | docker login --username AWS --password-stdin <your-account-id>.dkr.ecr.<your-aws-region>.amazonaws.com
 
 ```
 
-### 4. Pull & Restart Stack
+### 5. Pull & Launch Stack
 
 ```bash
-# Export the ECR Registry URI
-export ECR_REGISTRY=<your-account-id>.dkr.ecr.<your-aws-region>.amazonaws.com
-
-# Pull updated container images
+# Pull updated container images using .env variables
 docker compose pull
 
 # Restart container services
