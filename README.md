@@ -26,7 +26,7 @@ Application stack updates are executed manually on the EC2 host using Docker Com
 [1. Terraform Cloud (State)]        [2. Amazon ECR (Images)]
   ├── Network (VPC, Subnet, IGW)       ├── pulse-frontend:latest
   ├── ECR Repositories                 └── pulse-backend:latest
-  └── Compute (EC2 Instance)                      │
+  └── Compute (EC2 Instance & Key)                │
                                                   │ (Manual Pull & Deploy)
                                                   ▼
                                     [3. Production EC2 Instance]
@@ -52,39 +52,41 @@ The application runs on a custom Docker bridge network (`pulse_network`) on the 
 
 ## Infrastructure as Code (Terraform)
 
-The infrastructure is modularized and configured for local execution mode, leveraging **Terraform Cloud** exclusively for secure remote state locking and storage:
+The infrastructure is modularized and configured for remote execution via **Terraform Cloud**:
 
 ```text
 ├── modules/
-│   ├── compute/    # Security Group, IAM Role, Instance Profile, EC2 Instance
+│   ├── compute/    # Security Group, Dynamic AMI, TLS SSH Key, IAM Role & EC2
 │   ├── ecr/        # Amazon ECR Repositories for frontend and backend
-│   └── network/    # VPC, Internet Gateway, Public Subnet, Route Table
+│   └── network/    # VPC (192.168.0.0/16), Internet Gateway, Public Subnet, Route Table
 ├── main.tf         # Module orchestration
-├── outputs.tf      # Exports ECR repository URLs and EC2 Public IP
+├── outputs.tf      # Exports ECR repository URLs, EC2 Public IP, and Private Key
 ├── provider.tf     # Terraform Cloud backend configuration & AWS provider setup
-└── variables.tf    # Root input variables
+└── variables.tf    # Root input variables (t3.micro, us-east-1a)
 
 ```
 
-### Key Security
+### Key Infrastructure Configuration
 
-* **IAM Instance Profile:** The EC2 instance uses an attached IAM role (`pulse-ec2-ecr-read-role`) with `AmazonEC2ContainerRegistryReadOnly` permissions for keyless read access to pull images from Amazon ECR.
-* **Zero Credential Exposure:** AWS secrets remain in GitHub Repository Secrets; only state updates pass to Terraform Cloud via API token.
+* **Dynamic AMI Lookup:** Automatically retrieves the latest official Canonical Ubuntu 24.04 LTS (`ubuntu-noble-24.04-amd64-server-*`) image from Canonical's account (`099720109477`).
+* **Automated SSH Key Pair:** Automatically provisions an RSA 4096-bit SSH key pair (`tls_private_key`) and registers it with AWS EC2 (`pulse-auto-generated-key`).
+* **IAM Instance Profile:** Attaches an IAM role (`pulse-ec2-ecr-read-role`) with `AmazonEC2ContainerRegistryReadOnly` permissions to the EC2 instance for keyless image pulling from Amazon ECR.
+* **Zero Credential Exposure:** AWS credentials and API tokens remain securely stored inside GitHub Repository Secrets.
 
 ---
 
 ## CI/CD Pipeline (GitHub Actions)
 
-The pipeline is defined in `.github/workflows/cicd.yml` and triggers automatically on pushes to `dev` and `main`.
+The pipeline is defined in `.github/workflows/cicd.yml` and triggers automatically on pushes to `dev`.
 
 ### Workflow Stages:
 
-1. **Terraform Provisioning:** Authenticates with Terraform Cloud using `TF_API_TOKEN` for state locking, consumes `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION` directly from GitHub Secrets, and executes `terraform apply -auto-approve`.
-2. **Build & Push to ECR:** Authenticates with AWS using IAM secrets, builds Docker images from `/frontend` and `/backend`, and pushes them with the `latest` tag to Amazon ECR.
+1. **Terraform Provisioning:** Authenticates with Terraform Cloud using `TF_API_TOKEN`, passes AWS environment credentials, and runs `terraform apply -auto-approve`.
+2. **Build & Push to ECR:** Authenticates with AWS via IAM secrets, builds Docker images for `/frontend` and `/backend`, and pushes them with the `latest` tag to Amazon ECR.
 
 ---
 
-## Required CI/CD Secrets.
+## Required CI/CD Secrets
 
 Configure the following secrets under **Repository Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions**:
 
@@ -93,7 +95,7 @@ Configure the following secrets under **Repository Settings $\rightarrow$ Secret
 | `TF_API_TOKEN` | User API token for Terraform Cloud authentication |
 | `AWS_ACCESS_KEY_ID` | IAM User access key with ECR/EC2/VPC execution permissions |
 | `AWS_SECRET_ACCESS_KEY` | IAM User secret access key |
-| `AWS_REGION` | Target AWS deployment region (e.g., `us-east-1`) |
+| `AWS_REGION` | Target AWS deployment region (`us-east-1`) |
 
 ---
 
@@ -101,22 +103,32 @@ Configure the following secrets under **Repository Settings $\rightarrow$ Secret
 
 To deploy or update the stack on your EC2 instance:
 
-### 1. Connect to the EC2 Instance
+### 1. Extract the Generated Private Key (First-time setup)
+
+Fetch the automatically generated SSH private key from Terraform output and save it locally:
 
 ```bash
-ssh -i /path/to/key.pem ubuntu@<ec2-public-ip>
+terraform output -raw private_key_pem > pulse-key.pem
+chmod 400 pulse-key.pem
+
+```
+
+### 2. Connect to the EC2 Instance
+
+```bash
+ssh -i pulse-key.pem ubuntu@<ec2-public-ip>
 cd ~/app
 
 ```
 
-### 2. Authenticate Docker with Amazon ECR
+### 3. Authenticate Docker with Amazon ECR
 
 ```bash
 aws ecr get-login-password --region <your-aws-region> | docker login --username AWS --password-stdin <your-account-id>.dkr.ecr.<your-aws-region>.amazonaws.com
 
 ```
 
-### 3. Pull & Restart Stack
+### 4. Pull & Restart Stack
 
 ```bash
 # Export the ECR Registry URI

@@ -1,11 +1,11 @@
 # 1. Dynamic AMI Lookup for Ubuntu 24.04 LTS
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical's official AWS Account ID
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-noble-24.04-amd64-server-*"]
   }
 
   filter {
@@ -60,7 +60,18 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# 3. IAM Role & Instance Profile for ECR Read-Only Access
+# 3. Automatic SSH Key Pair Generation
+resource "tls_private_key" "auto_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = var.key_name
+  public_key = tls_private_key.auto_key.public_key_openssh
+}
+
+# 4. IAM Role & Instance Profile for ECR Read-Only Access
 resource "aws_iam_role" "ec2_ecr_role" {
   name = "pulse-ec2-ecr-read-role"
 
@@ -88,24 +99,14 @@ resource "aws_iam_instance_profile" "ec2_profile" {
   role = aws_iam_role.ec2_ecr_role.name
 }
 
-# 4. Provision the Single EC2 Instance
+# 5. Provision the Single EC2 Instance
 resource "aws_instance" "web_server" {
-  ami                         = data.aws_ami.ubuntu.id # Uses dynamic AMI lookup
-  instance_type               = var.instance_type
-  subnet_id                   = var.public_subnet_id
-  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
-  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
-  key_name                    = var.key_name
-  user_data_replace_on_change = true
-
-  user_data = <<-EOF
-              #!/bin/bash
-              sudo apt-get update -y
-              sudo apt-get install -y docker.io docker-compose-v2
-              sudo systemctl start docker
-              sudo systemctl enable docker
-              sudo usermod -aG docker ubuntu
-              EOF
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.instance_type
+  subnet_id              = var.public_subnet_id
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  key_name               = aws_key_pair.generated_key.key_name
 
   tags = {
     Name = "pulse-dev-server"
