@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# Main Branch - Currently Empty. All active work is on the dev branch.
-=======
 # Containerized Three-Tier Architecture (Development Setup)
 
 This repository contains the Terraform code and automated CI/CD pipeline for provisioning and running a decoupled three-tier application stack on AWS.
