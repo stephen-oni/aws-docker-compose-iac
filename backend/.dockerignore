@@ -1,0 +1,28 @@
+# Python Cache and Bytecode (Prevents copying local compiled files into container)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python Virtual Environments
+venv/
+env/
+.venv/
+ENV/
+
+# Security & Secrets (Keeps local environment files out of Docker build context)
+.env
+.env.*
+
+# Git files
+.git/
+.gitignore
+README.md
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
