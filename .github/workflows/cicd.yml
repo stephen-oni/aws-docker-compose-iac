@@ -112,8 +112,8 @@ jobs:
 
       - name: Execute Deployment via SSM
         run: |
-          # 1. Compress configuration files and convert to Base64 to safely pass through SSM payload
-          tar -czf app-files.tar.gz docker-compose.yml init.sql
+          # 1. Compress configuration files (including monitoring) and convert to Base64
+          tar -czf app-files.tar.gz docker-compose.yml init.sql monitoring/
           FILE_B64=$(base64 -w 0 app-files.tar.gz)
           
           # 2. Send the execution command to the EC2 Instance via SSM
@@ -130,9 +130,15 @@ jobs:
               \"echo '${FILE_B64}' | base64 -d > app-files.tar.gz\",
               \"tar -xzf app-files.tar.gz\",
               \"rm app-files.tar.gz\",
+              \"echo 'Generating .env file...'\",
+              \"echo 'ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com' > .env\",
+              \"echo 'DB_USER=${{ secrets.DB_USER }}' >> .env\",
+              \"echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> .env\",
+              \"echo 'DB_NAME=${{ secrets.DB_NAME }}' >> .env\",
+              \"echo 'SECRET_KEY=${{ secrets.SECRET_KEY }}' >> .env\",
               \"aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com\",
-              \"ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com DB_USER=${{ secrets.DB_USER }} DB_PASSWORD=${{ secrets.DB_PASSWORD }} DB_NAME=${{ secrets.DB_NAME }} SECRET_KEY=${{ secrets.SECRET_KEY }} docker compose pull\",
-              \"ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com DB_USER=${{ secrets.DB_USER }} DB_PASSWORD=${{ secrets.DB_PASSWORD }} DB_NAME=${{ secrets.DB_NAME }} SECRET_KEY=${{ secrets.SECRET_KEY }} docker compose up -d --remove-orphans\"
+              \"docker compose pull\",
+              \"docker compose up -d --remove-orphans\"
             ]" \
             --query "Command.CommandId" \
             --output text)
@@ -146,27 +152,3 @@ jobs:
             --instance-id "${{ needs.terraform.outputs.instance_id }}"
             
           echo "Deployment successful!"
-
-
-
-
-
-
-# Add this step if you want CI/CD to generate the .env file automatically at runtime:
-# - name: Deploy to EC2 & Write .env
-#   uses: appleboy/ssh-action@master
-#   with:
-#     host: ${{ secrets.EC2_HOST }}
-#     username: ubuntu
-#     key: ${{ secrets.EC2_SSH_KEY }}
-#     script: |
-#       cd /home/ubuntu/app
-#       cat << 'EOF' > .env
-#       ECR_REGISTRY=${{ secrets.ECR_REGISTRY }}
-#       DB_USER=${{ secrets.DB_USER }}
-#       DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-#       DB_NAME=${{ secrets.DB_NAME }}
-#       SECRET_KEY=${{ secrets.SECRET_KEY }}
-#       EOF
-#       docker compose down
-#       docker compose up -d

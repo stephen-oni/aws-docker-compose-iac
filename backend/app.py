@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify, session
 import mysql.connector
 from flask_bcrypt import Bcrypt
+from prometheus_flask_exporter import PrometheusMetrics
 import os
 
 app = Flask(__name__)
+
+# Initialize Prometheus Metrics (Automatically exposes /metrics on port 5000)
+metrics = PrometheusMetrics(app)
 
 # Secret key pulled from environment variable for security
 app.secret_key = os.getenv('SECRET_KEY', 'dev_super_secret_key_change_me')
