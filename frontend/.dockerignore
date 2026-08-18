@@ -2,7 +2,7 @@
 .DS_Store
 Thumbs.db
 
-# IDE and Editor settings
+# IDE and Editor settings..
 .vscode/
 .idea/
 *.swp
