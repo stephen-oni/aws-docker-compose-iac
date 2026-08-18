@@ -151,9 +151,3 @@ To destroy the provisioned AWS resources and stop billing:
   if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
   run: |
     terraform destroy -auto-approve -input=false
-
-```
-
-3. Commit and push the change to the `dev` branch to trigger resource destruction[cite: 11].
-
->>>>>>> dev
