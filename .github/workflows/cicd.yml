@@ -40,11 +40,11 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
-      - name: Terraform Apply
+      - name: Terraform destroy
         id: apply
         if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
         run: |
-          terraform apply -auto-approve -input=false
+          terraform destroy -auto-approve -input=false
           
           # Extract the provisioned Instance ID from root outputs.tf for SSM
           EC2_INSTANCE_ID=$(terraform output -raw instance_id)
